@@ -1,0 +1,166 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Graph Visualization</title>
+    <style>
+        #graph {
+            width: 800px;
+            height: 600px;
+            border: 1px solid black;
+        }
+    </style>
+</head>
+<body>
+    <h1>Graph Visualization</h1>
+    <canvas id="graph"></canvas>
+
+    <script>
+        const canvas = document.getElementById('graph');
+        const ctx = canvas.getContext('2d');
+        canvas.width = 800;
+        canvas.height = 600;
+
+        const nodes = [
+            { x: 100, y: 100, label: 'A' },
+            { x: 300, y: 100, label: 'B' },
+            { x: 500, y: 100, label: 'C' },
+            { x: 200, y: 300, label: 'D' },
+            { x: 400, y: 300, label: 'E' }
+        ];
+
+        const edges = [
+            { from: 0, to: 1 },
+            { from: 1, to: 2 },
+            { from: 0, to: 3 },
+            { from: 3, to: 4 },
+            { from: 4, to: 2 }
+        ];
+
+        function drawNode(node) {
+            ctx.beginPath();
+            ctx.arc(node.x, node.y, 20, 0, 2 * Math.PI);
+            ctx.fillStyle = 'lightblue';
+            ctx.fill();
+            ctx.stroke();
+            ctx.fillStyle = 'black';
+            ctx.fillText(node.label, node.x - 5, node.y + 5);
+        }
+
+        function drawEdge(edge) {
+            const fromNode = nodes[edge.from];
+            const toNode = nodes[edge.to];
+            ctx.beginPath();
+            ctx.moveTo(fromNode.x, fromNode.y);
+            ctx.lineTo(toNode.x, toNode.y);
+            ctx.stroke();
+        }
+
+        function drawGraph() {
+            edges.forEach(drawEdge);
+            nodes.forEach(drawNode);
+        }
+
+        drawGraph();
+    </script>
+</body>
+</html>
+<h2>Add Node</h2>
+<form id="nodeForm">
+    <label for="x">X:</label>
+    <input type="number" id="x" name="x" required>
+    <label for="y">Y:</label>
+    <input type="number" id="y" name="y" required>
+    <label for="label">Label:</label>
+    <input type="text" id="label" name="label" required>
+    <button type="submit">Add Node</button>
+</form>
+
+<h2>Add Edge</h2>
+<form id="edgeForm">
+    <label for="from">From (Node Index):</label>
+    <input type="number" id="from" name="from" required>
+    <label for="to">To (Node Index):</label>
+    <input type="number" id="to" name="to" required>
+    <button type="submit">Add Edge</button>
+</form>
+
+<script>
+    document.getElementById('nodeForm').addEventListener('submit', function(event) {
+        event.preventDefault();
+        const x = parseInt(document.getElementById('x').value);
+        const y = parseInt(document.getElementById('y').value);
+        const label = document.getElementById('label').value;
+        nodes.push({ x, y, label });
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        drawGraph();
+    });
+
+    document.getElementById('edgeForm').addEventListener('submit', function(event) {
+        event.preventDefault();
+        const from = parseInt(document.getElementById('from').value);
+        const to = parseInt(document.getElementById('to').value);
+        edges.push({ from, to });
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        drawGraph();
+    });
+</script>
+<script>
+    function find(parent, i) {
+        if (parent[i] === i) {
+            return i;
+        }
+        return find(parent, parent[i]);
+    }
+
+    function union(parent, rank, x, y) {
+        const xroot = find(parent, x);
+        const yroot = find(parent, y);
+
+        if (rank[xroot] < rank[yroot]) {
+            parent[xroot] = yroot;
+        } else if (rank[xroot] > rank[yroot]) {
+            parent[yroot] = xroot;
+        } else {
+            parent[yroot] = xroot;
+            rank[xroot]++;
+        }
+    }
+
+    function kruskal() {
+        const result = [];
+        let i = 0;
+        let e = 0;
+
+        const sortedEdges = edges.slice().sort((a, b) => a.weight - b.weight);
+
+        const parent = [];
+        const rank = [];
+
+        for (let node = 0; node < nodes.length; ++node) {
+            parent[node] = node;
+            rank[node] = 0;
+        }
+
+        while (e < nodes.length - 1 && i < sortedEdges.length) {
+            const nextEdge = sortedEdges[i++];
+            const x = find(parent, nextEdge.from);
+            const y = find(parent, nextEdge.to);
+
+            if (x !== y) {
+                result.push(nextEdge);
+                union(parent, rank, x, y);
+                e++;
+            }
+        }
+
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        result.forEach(drawEdge);
+        nodes.forEach(drawNode);
+    }
+
+    document.getElementById('kruskalButton').addEventListener('click', kruskal);
+</script>
+
+<button id="kruskalButton">Run Kruskal's Algorithm</button>

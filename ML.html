@@ -1,0 +1,98 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>KNN Algorithm Visualization</title>
+    <style>
+        #canvas {
+            border: 1px solid black;
+            margin-top: 20px;
+        }
+        #explanation {
+            margin-top: 20px;
+        }
+    </style>
+</head>
+<body>
+    <h1>K-Nearest Neighbors Algorithm Visualization</h1>
+    <canvas id="canvas" width="600" height="400"></canvas>
+    <div id="explanation"></div>
+
+    <script>
+        const canvas = document.getElementById('canvas');
+        const ctx = canvas.getContext('2d');
+        const explanation = document.getElementById('explanation');
+
+        const points = [
+            { x: 100, y: 150, label: 'A' },
+            { x: 200, y: 250, label: 'A' },
+            { x: 300, y: 100, label: 'B' },
+            { x: 400, y: 300, label: 'B' },
+            { x: 500, y: 200, label: 'A' }
+        ];
+
+        const newPoint = { x: 350, y: 200 };
+
+        function drawPoints() {
+            points.forEach(point => {
+                ctx.beginPath();
+                ctx.arc(point.x, point.y, 5, 0, 2 * Math.PI);
+                ctx.fillStyle = point.label === 'A' ? 'red' : 'blue';
+                ctx.fill();
+                ctx.stroke();
+            });
+
+            ctx.beginPath();
+            ctx.arc(newPoint.x, newPoint.y, 5, 0, 2 * Math.PI);
+            ctx.fillStyle = 'green';
+            ctx.fill();
+            ctx.stroke();
+        }
+
+        function calculateDistances() {
+            return points.map(point => {
+                const distance = Math.sqrt(
+                    Math.pow(point.x - newPoint.x, 2) + Math.pow(point.y - newPoint.y, 2)
+                );
+                return { ...point, distance };
+            });
+        }
+
+        function findNearestNeighbors(distances, k) {
+            return distances.sort((a, b) => a.distance - b.distance).slice(0, k);
+        }
+
+        function classify(neighbors) {
+            const counts = neighbors.reduce((acc, neighbor) => {
+                acc[neighbor.label] = (acc[neighbor.label] || 0) + 1;
+                return acc;
+            }, {});
+            return Object.keys(counts).reduce((a, b) => counts[a] > counts[b] ? a : b);
+        }
+
+        function visualizeKNN(k) {
+            drawPoints();
+            explanation.innerHTML = 'Step 1: Draw all points on the canvas.<br>';
+
+            const distances = calculateDistances();
+            explanation.innerHTML += 'Step 2: Calculate distances from the new point to all other points.<br>';
+
+            const neighbors = findNearestNeighbors(distances, k);
+            explanation.innerHTML += `Step 3: Find the ${k} nearest neighbors.<br>`;
+
+            neighbors.forEach(neighbor => {
+                ctx.beginPath();
+                ctx.moveTo(newPoint.x, newPoint.y);
+                ctx.lineTo(neighbor.x, neighbor.y);
+                ctx.stroke();
+            });
+
+            const label = classify(neighbors);
+            explanation.innerHTML += `Step 4: Classify the new point based on the majority label of its neighbors. The new point is classified as: ${label}.`;
+        }
+
+        visualizeKNN(3);
+    </script>
+</body>
+</html>

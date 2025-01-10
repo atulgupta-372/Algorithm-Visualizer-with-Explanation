@@ -1,0 +1,205 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Insertion Sort Visualization</title>
+    <style>
+        body {
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            background-color: #f0f0f0;
+            margin: 0;
+        }
+        .bar-container {
+            display: flex;
+            align-items: flex-end;
+            margin-bottom: 20px;
+        }
+        .bar {
+            width: 20px;
+            margin: 0 2px;
+            background-color: #3498db;
+            transition: height 0.3s, background-color 0.3s;
+            position: relative;
+        }
+        .bar span {
+            position: absolute;
+            bottom: 0;
+            width: 100%;
+            text-align: center;
+            color: white;
+            font-weight: bold;
+        }
+        #controls {
+            margin: 10px;
+        }
+        #explanationContainer {
+            width: 80%;
+            margin: 20px auto;
+            padding: 10px;
+            border: 1px solid #ddd;
+            background-color: #fff;
+            border-radius: 8px;
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+        }
+        #explanationText {
+            font-size: 16px;
+            line-height: 1.5;
+            color: #333;
+        }
+        .highlight {
+            color: #e74c3c;
+            font-weight: bold;
+        }
+        .important {
+            color: #2ecc71;
+            font-weight: bold;
+        }
+    </style>
+</head>
+<body>
+    <div class="bar-container" id="barContainer"></div>
+    <div id="controls">
+        <input type="text" id="arrayInput" placeholder="Enter comma-separated numbers">
+        <button onclick="visualize()">Visualize</button>
+        <label for="speedInput">Speed (ms): </label>
+        <input type="number" id="speedInput" value="300" min="50" max="2000">
+        <button onclick="autoReplay()">Auto Replay</button>
+        <button onclick="prevStep()">Previous</button>
+        <button onclick="nextStep()">Next</button>
+    </div>
+    <div id="explanationContainer">
+        <h3>Step-by-Step Explanation</h3>
+        <p id="explanationText">Press "Visualize" to generate the bars and "Auto Replay" to see the animation.</p>
+    </div>
+
+    <script>
+        let array = [];
+        let speed = 300;
+        let steps = [];
+        let currentStep = 0;
+        let replaying = false;
+
+        function createBars(array, highlightIndices = [], swapIndices = [], sorted = false) {
+            const barContainer = document.getElementById('barContainer');
+            barContainer.innerHTML = '';
+            array.forEach((value, index) => {
+                const bar = document.createElement('div');
+                bar.classList.add('bar');
+                bar.style.height = `${value * 3}px`;
+                bar.style.transition = `height ${speed}ms, background-color ${speed}ms`;
+                const barValue = document.createElement('span');
+                barValue.textContent = value;
+                bar.appendChild(barValue);
+
+                if (sorted) bar.style.backgroundColor = 'green';
+                else if (swapIndices.includes(index)) bar.style.backgroundColor = 'red';
+                else if (highlightIndices.includes(index)) bar.style.backgroundColor = 'yellow';
+                else bar.style.backgroundColor = '#3498db';
+
+                barContainer.appendChild(bar);
+            });
+        }
+
+        function updateExplanation(message) {
+            document.getElementById('explanationText').innerHTML = message;
+        }
+
+        function visualize() {
+            const input = document.getElementById('arrayInput').value.trim();
+            if (/^(\d+(,\d+)*)?$/.test(input)) {
+                array = input.split(',').map(Number);
+                steps = [];
+                currentStep = 0;
+                replaying = false;
+                insertionSort([...array]); // Trigger sorting and record steps
+                createBars(array);
+                updateExplanation("<span class='important'>Array ready for visualization. Press Auto Replay or use navigation buttons.</span>");
+            } else {
+                alert("Invalid input! Please enter only numbers separated by commas.");
+            }
+        }
+
+        function recordStep(array, highlightIndices = [], swapIndices = [], sorted = false, message = "") {
+            steps.push({ array: [...array], highlightIndices, swapIndices, sorted, message });
+        }
+
+        function insertionSort(array) {
+            for (let i = 1; i < array.length; i++) {
+                let key = array[i];
+                let j = i - 1;
+                recordStep(array, [i], [], false, `<span class='important'>Pass ${i}: Inserting ${key} into sorted part of the array.</span>`);
+
+                while (j >= 0 && array[j] > key) {
+                    array[j + 1] = array[j];
+                    recordStep(array, [j, j + 1], [], false, `<span class='highlight'>${array[j]}</span> is greater than <span class='highlight'>${key}</span>. Shifting ${array[j]} to the right.`);
+                    j--;
+                }
+                array[j + 1] = key;
+                recordStep(array, [], [j + 1], false, `<span class='highlight'>${key}</span> inserted at position ${j + 1}.`);
+            }
+            recordStep(array, [], [], true, "<span class='important'>The array is fully sorted!</span>");
+        }
+
+        async function autoReplay() {
+            if (steps.length === 0) {
+                alert("Please visualize the array first.");
+                return;
+            }
+
+            replaying = true;
+            currentStep = 0;
+
+            for (let step of steps) {
+                if (!replaying) break;
+                createBars(step.array, step.highlightIndices, step.swapIndices, step.sorted);
+                updateExplanation(step.message || `Step ${currentStep + 1}`);
+                currentStep++;
+                await new Promise(resolve => setTimeout(resolve, speed));
+            }
+
+            replaying = false;
+        }
+
+        function prevStep() {
+            if (steps.length === 0) {
+                alert("Please visualize the array first.");
+                return;
+            }
+
+            if (currentStep > 0) {
+                currentStep--;
+                const step = steps[currentStep];
+                createBars(step.array, step.highlightIndices, step.swapIndices, step.sorted);
+                updateExplanation(step.message || `Step ${currentStep + 1}`);
+            } else {
+                updateExplanation("<span class='important'>You're already at the first step.</span>");
+            }
+        }
+
+        function nextStep() {
+            if (steps.length === 0) {
+                alert("Please visualize the array first.");
+                return;
+            }
+
+            if (currentStep < steps.length - 1) {
+                currentStep++;
+                const step = steps[currentStep];
+                createBars(step.array, step.highlightIndices, step.swapIndices, step.sorted);
+                updateExplanation(step.message || `Step ${currentStep + 1}`);
+            } else {
+                updateExplanation("<span class='important'>You've reached the final step.</span>");
+            }
+        }
+
+        document.getElementById('speedInput').addEventListener('input', function () {
+            speed = Number(this.value);
+        });
+    </script>
+</body>
+</html>

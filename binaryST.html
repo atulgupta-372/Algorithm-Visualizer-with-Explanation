@@ -1,0 +1,117 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Binary Search Tree Visualization</title>
+    <script src="https://d3js.org/d3.v6.min.js"></script>
+    <style>
+        .node circle {
+            fill: #fff;
+            stroke: steelblue;
+            stroke-width: 3px;
+        }
+
+        .node text {
+            font: 12px sans-serif;
+        }
+
+        .link {
+            fill: none;
+            stroke: #ccc;
+            stroke-width: 2px;
+        }
+    </style>
+</head>
+<body>
+    <h2>Binary Search Tree Visualization</h2>
+    <form id="bst-form">
+        <label for="bst-input">Enter values (comma separated):</label>
+        <input type="text" id="bst-input" name="bst-input">
+        <button type="submit">Generate Tree</button>
+    </form>
+    <div id="tree-container"></div>
+    <script>
+        document.getElementById('bst-form').addEventListener('submit', function(event) {
+            event.preventDefault();
+            const input = document.getElementById('bst-input').value;
+            const values = input.split(',').map(Number);
+            const treeData = buildTree(values);
+            updateTree(treeData);
+        });
+
+        function buildTree(values) {
+            if (values.length === 0) return null;
+
+            const root = { name: values[0].toString(), children: [] };
+
+            for (let i = 1; i < values.length; i++) {
+                insertNode(root, values[i]);
+            }
+
+            return root;
+        }
+
+        function insertNode(node, value) {
+            if (value < parseInt(node.name)) {
+                if (node.children[0]) {
+                    insertNode(node.children[0], value);
+                } else {
+                    node.children[0] = { name: value.toString(), children: [] };
+                }
+            } else {
+                if (node.children[1]) {
+                    insertNode(node.children[1], value);
+                } else {
+                    node.children[1] = { name: value.toString(), children: [] };
+                }
+            }
+        }
+
+        function updateTree(treeData) {
+            d3.select("#tree-container").selectAll("*").remove();
+
+            const margin = { top: 20, right: 90, bottom: 30, left: 90 },
+                width = 960 - margin.left - margin.right,
+                height = 500 - margin.top - margin.bottom;
+
+            const svg = d3.select("#tree-container").append("svg")
+                .attr("width", width + margin.right + margin.left)
+                .attr("height", height + margin.top + margin.bottom)
+                .append("g")
+                .attr("transform", "translate(" + margin.left + "," + margin.top + ")");
+
+            const root = d3.hierarchy(treeData);
+
+            const treeLayout = d3.tree().size([height, width]);
+
+            treeLayout(root);
+
+            svg.selectAll('.link')
+                .data(root.links())
+                .enter()
+                .append('path')
+                .attr('class', 'link')
+                .attr('d', d3.linkHorizontal()
+                    .x(d => d.y)
+                    .y(d => d.x));
+
+            const node = svg.selectAll('.node')
+                .data(root.descendants())
+                .enter()
+                .append('g')
+                .attr('class', 'node')
+                .attr('transform', d => `translate(${d.y},${d.x})`);
+
+            node.append('circle')
+                .attr('r', 10);
+
+            node.append('text')
+                .attr('dy', '.35em')
+                .attr('x', d => d.children ? -13 : 13)
+                .style('text-anchor', d => d.children ? 'end' : 'start')
+                .text(d => d.data.name);
+        }
+    </script>
+</body>
+</html>

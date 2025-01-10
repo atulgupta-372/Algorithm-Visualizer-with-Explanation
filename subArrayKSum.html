@@ -1,0 +1,214 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Find Subarray with Sum K Visualization</title>
+    <style>
+        body {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            height: 100vh;
+            background-color: #f0f0f0;
+            margin: 0;
+        }
+        .bar-container {
+            display: flex;
+            align-items: flex-end;
+            margin-bottom: 20px;
+        }
+        .bar {
+            width: 30px;
+            margin: 0 5px;
+            background-color: #3498db;
+            color: white;
+            text-align: center;
+            font-weight: bold;
+            position: relative;
+            transition: background-color 0.3s, height 0.3s;
+        }
+        .bar span {
+            position: absolute;
+            top: 5px;
+            left: 0;
+            width: 100%;
+            font-size: 14px;
+            color: white;
+            font-weight: bold;
+        }
+        button, input {
+            margin: 5px;
+        }
+        .controls {
+            margin-top: 20px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+        .explanation-container {
+            margin-top: 20px;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            background-color: #fff;
+            box-shadow: 0px 2px 5px rgba(0, 0, 0, 0.1);
+            width: 80%;
+            text-align: center;
+            font-family: Arial, sans-serif;
+        }
+        .explanation-header {
+            font-size: 20px;
+            font-weight: bold;
+            margin-bottom: 10px;
+        }
+        .explanation-body {
+            font-size: 16px;
+        }
+    </style>
+</head>
+<body>
+    <div class="bar-container" id="barContainer"></div>
+    <div class="controls">
+        <input type="text" id="arrayInput" placeholder="Enter numbers (comma-separated)">
+        <input type="number" id="sumInput" placeholder="Enter target sum (k)">
+        <button onclick="visualizeArray()">Visualize</button>
+        <button onclick="startFindingSubarray()">Start</button>
+        <div>
+            <button onclick="prevStep()">Previous</button>
+            <button onclick="nextStep()">Next</button>
+        </div>
+        <div>
+            <label for="speedInput">Speed (ms): </label>
+            <input type="number" id="speedInput" value="500" min="100" max="2000" onchange="updateSpeed()">
+        </div>
+    </div>
+    <div class="explanation-container">
+        <div class="explanation-header">Explanation</div>
+        <div class="explanation-body" id="explanation">Enter an array and target sum, then visualize.</div>
+    </div>
+
+    <script>
+        let array = [];
+        let steps = [];
+        let currentStep = 0;
+        let speed = 500;
+
+        // Function to create bars for visualization
+        function createBars(array, highlightIndices = [], targetSum = -1) {
+            const barContainer = document.getElementById('barContainer');
+            barContainer.innerHTML = '';
+            array.forEach((value, index) => {
+                const bar = document.createElement('div');
+                bar.classList.add('bar');
+                bar.style.height = `${Math.abs(value) * 3}px`;
+                bar.style.backgroundColor = highlightIndices.includes(index) ? 'green' : '#3498db';
+                const valueLabel = document.createElement('span');
+                valueLabel.textContent = value;
+                bar.appendChild(valueLabel);
+                barContainer.appendChild(bar);
+            });
+        }
+
+        // Visualize array input
+        function visualizeArray() {
+            const input = document.getElementById('arrayInput').value;
+            array = input.split(',').map(Number);
+            if (array.some(isNaN)) {
+                alert('Please enter valid numbers.');
+                return;
+            }
+            const sumInput = document.getElementById('sumInput').value;
+            if (isNaN(Number(sumInput)) || sumInput === "") {
+                alert('Please enter a valid target sum.');
+                return;
+            }
+            steps = [];
+            currentStep = 0;
+            createBars(array);
+            document.getElementById('explanation').textContent = "Array visualized. Click 'Start' to begin.";
+        }
+
+        // Record each step for visualization
+        function recordStep(array, highlightIndices, explanation) {
+            steps.push({ array: [...array], highlightIndices, explanation });
+        }
+
+        // Update speed dynamically
+        function updateSpeed() {
+            speed = Number(document.getElementById('speedInput').value);
+        }
+
+        // Start finding the subarray with sum k
+        async function startFindingSubarray() {
+            if (!array.length) {
+                alert('Visualize the array first!');
+                return;
+            }
+            const k = Number(document.getElementById('sumInput').value);
+            let sum = 0;
+            let map = new Map();
+            map.set(0, -1); // Handle subarray starting from index 0
+
+            steps = [];
+            currentStep = 0;
+
+            for (let i = 0; i < array.length; i++) {
+                sum += array[i];
+                if (map.has(sum - k)) {
+                    const startIndex = map.get(sum - k) + 1;
+                    const endIndex = i;
+                    recordStep(array, Array.from({ length: endIndex - startIndex + 1 }, (_, j) => startIndex + j), `Found subarray with sum ${k}: Indices [${startIndex}, ${endIndex}].`);
+                    await displayStep();
+                    createBars(array, Array.from({ length: endIndex - startIndex + 1 }, (_, j) => startIndex + j));
+                    updateExplanation(steps[steps.length - 1].explanation);
+                    return;
+                }
+                map.set(sum, i);
+                recordStep(array, [], `Sum so far: ${sum}. No subarray found yet.`);
+                await displayStep();
+                createBars(array, []);
+                updateExplanation(steps[steps.length - 1].explanation);
+            }
+
+            recordStep(array, [], `No subarray with sum ${k} found.`);
+            await displayStep();
+            updateExplanation(`No subarray with sum ${k} found.`);
+        }
+
+        // Helper function to display each step with delay
+        async function displayStep() {
+            const step = steps[currentStep];
+            createBars(step.array, step.highlightIndices);
+            updateExplanation(step.explanation);
+            await new Promise(resolve => setTimeout(resolve, speed));
+            currentStep++;
+        }
+
+        // Update explanation
+        function updateExplanation(text) {
+            document.getElementById('explanation').textContent = text;
+        }
+
+        // Navigate to previous step
+        function prevStep() {
+            if (currentStep > 1) {
+                currentStep -= 2;
+                displayStep();
+            } else {
+                updateExplanation("This is the first step.");
+            }
+        }
+
+        // Navigate to next step
+        function nextStep() {
+            if (currentStep < steps.length) {
+                displayStep();
+            } else {
+                updateExplanation("This is the last step.");
+            }
+        }
+    </script>
+</body>
+</html>

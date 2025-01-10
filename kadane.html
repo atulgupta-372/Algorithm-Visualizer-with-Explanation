@@ -1,0 +1,213 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Kadane's Algorithm Visualization</title>
+    <style>
+        body {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            height: 100vh;
+            background-color: #f0f0f0;
+            margin: 0;
+        }
+        .bar-container {
+            display: flex;
+            align-items: flex-end;
+            margin-bottom: 20px;
+        }
+        .bar {
+            width: 30px;
+            margin: 0 5px;
+            background-color: #3498db;
+            color: white;
+            text-align: center;
+            font-weight: bold;
+            position: relative;
+            transition: background-color 0.3s, height 0.3s;
+        }
+        .bar span {
+            position: absolute;
+            top: 5px;
+            left: 0;
+            width: 100%;
+            font-size: 14px;
+            color: white;
+            font-weight: bold;
+        }
+        button, input {
+            margin: 5px;
+        }
+        .controls {
+            margin-top: 20px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+        .explanation-container {
+            margin-top: 20px;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            background-color: #fff;
+            box-shadow: 0px 2px 5px rgba(0, 0, 0, 0.1);
+            width: 80%;
+            text-align: center;
+            font-family: Arial, sans-serif;
+        }
+        .explanation-header {
+            font-size: 20px;
+            font-weight: bold;
+            margin-bottom: 10px;
+        }
+        .explanation-body {
+            font-size: 16px;
+        }
+    </style>
+</head>
+<body>
+    <div class="bar-container" id="barContainer"></div>
+    <div class="controls">
+        <input type="text" id="arrayInput" placeholder="Enter numbers (comma-separated)">
+        <button onclick="visualizeArray()">Visualize</button>
+        <button onclick="startKadane()">Start</button>
+        <div>
+            <button onclick="prevStep()">Previous</button>
+            <button onclick="nextStep()">Next</button>
+        </div>
+        <div>
+            <label for="speedInput">Speed (ms): </label>
+            <input type="number" id="speedInput" value="500" min="100" max="2000" onchange="updateSpeed()">
+        </div>
+    </div>
+    <div class="explanation-container">
+        <div class="explanation-header">Explanation</div>
+        <div class="explanation-body" id="explanation">Enter an array and click "Visualize" to begin.</div>
+    </div>
+
+    <script>
+        let array = [];
+        let steps = [];
+        let currentStep = 0;
+        let speed = 500;
+
+        // Function to create bars for visualization
+        function createBars(array, highlightIndex = -1, startIndex = -1, endIndex = -1) {
+            const barContainer = document.getElementById('barContainer');
+            barContainer.innerHTML = '';
+            array.forEach((value, index) => {
+                const bar = document.createElement('div');
+                bar.classList.add('bar');
+                bar.style.height = `${Math.abs(value) * 3}px`;
+                bar.style.backgroundColor = 
+                    index === highlightIndex ? 'yellow' :
+                    index >= startIndex && index <= endIndex ? 'green' : '#3498db';
+                const valueLabel = document.createElement('span');
+                valueLabel.textContent = value;
+                bar.appendChild(valueLabel);
+                barContainer.appendChild(bar);
+            });
+        }
+
+        // Visualize array input
+        function visualizeArray() {
+            const input = document.getElementById('arrayInput').value;
+            array = input.split(',').map(Number);
+            if (array.some(isNaN)) {
+                alert('Please enter valid numbers.');
+                return;
+            }
+            steps = [];
+            currentStep = 0;
+            createBars(array);
+            document.getElementById('explanation').textContent = "Array visualized. Click 'Start' to begin Kadane's Algorithm.";
+        }
+
+        // Function to record each step
+        function recordStep(array, highlightIndex, startIndex, endIndex, explanation) {
+            steps.push({ array: [...array], highlightIndex, startIndex, endIndex, explanation });
+        }
+
+        // Update speed based on user input
+        function updateSpeed() {
+            speed = Number(document.getElementById('speedInput').value);
+        }
+
+        // Start Kadane's Algorithm
+        async function startKadane() {
+            if (!array.length) {
+                alert('Visualize the array first!');
+                return;
+            }
+            let maxSum = -Infinity;
+            let currentSum = 0;
+            let startIndex = 0;
+            let tempStart = 0;
+            let endIndex = -1;
+
+            steps = [];
+            currentStep = 0;
+
+            for (let i = 0; i < array.length; i++) {
+                if (currentSum <= 0) {
+                    currentSum = array[i];
+                    tempStart = i;
+                    recordStep(array, i, tempStart, i, `Reset current sum to ${array[i]} starting a new subarray.`);
+                } else {
+                    currentSum += array[i];
+                    recordStep(array, i, tempStart, i, `Added ${array[i]} to current sum. New sum: ${currentSum}`);
+                }
+
+                if (currentSum > maxSum) {
+                    maxSum = currentSum;
+                    startIndex = tempStart;
+                    endIndex = i;
+                    recordStep(array, i, startIndex, endIndex, `Updated maximum sum to ${maxSum} for subarray [${startIndex}, ${endIndex}].`);
+                } else {
+                    recordStep(array, i, startIndex, endIndex, `Current sum: ${currentSum}, Maximum sum remains ${maxSum}.`);
+                }
+
+                createBars(array, i, startIndex, endIndex);
+                updateExplanation(steps[steps.length - 1].explanation);
+                await new Promise(resolve => setTimeout(resolve, speed));
+            }
+
+            recordStep(array, -1, startIndex, endIndex, `Final maximum sum is ${maxSum} for subarray [${startIndex}, ${endIndex}].`);
+            createBars(array, -1, startIndex, endIndex);
+            updateExplanation(`Final maximum sum is ${maxSum} for subarray [${startIndex}, ${endIndex}].`);
+        }
+
+        // Update explanation text
+        function updateExplanation(text) {
+            document.getElementById('explanation').textContent = text;
+        }
+
+        // Navigate to the previous step
+        function prevStep() {
+            if (currentStep > 0) {
+                currentStep--;
+                const step = steps[currentStep];
+                createBars(step.array, step.highlightIndex, step.startIndex, step.endIndex);
+                updateExplanation(step.explanation);
+            } else {
+                updateExplanation("This is the first step.");
+            }
+        }
+
+        // Navigate to the next step
+        function nextStep() {
+            if (currentStep < steps.length - 1) {
+                currentStep++;
+                const step = steps[currentStep];
+                createBars(step.array, step.highlightIndex, step.startIndex, step.endIndex);
+                updateExplanation(step.explanation);
+            } else {
+                updateExplanation("This is the last step.");
+            }
+        }
+    </script>
+</body>
+</html>

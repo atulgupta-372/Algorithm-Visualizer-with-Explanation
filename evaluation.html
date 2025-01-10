@@ -1,0 +1,173 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Expression Evaluation Visualization</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 20px;
+        }
+        .container {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+        .input-section, .output-section {
+            margin: 20px 0;
+        }
+        .stack {
+            display: flex;
+            flex-direction: column-reverse;
+            border: 1px solid #000;
+            padding: 10px;
+            width: 100px;
+            height: 200px;
+            overflow-y: auto;
+        }
+        .stack-item {
+            border: 1px solid #000;
+            padding: 5px;
+            margin: 2px 0;
+            text-align: center;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Expression Evaluation Visualization</h1>
+        <div class="input-section">
+            <label for="expression">Enter Expression:</label>
+            <input type="text" id="expression" placeholder="Enter infix, postfix, or prefix expression">
+            <button onclick="evaluateExpression()">Evaluate</button>
+        </div>
+        <div class="output-section">
+            <h2>Stack Visualization</h2>
+            <div id="stack" class="stack"></div>
+            <h2>Result: <span id="result"></span></h2>
+        </div>
+    </div>
+
+    <script>
+        function evaluateExpression() {
+            const expression = document.getElementById('expression').value;
+            const stack = [];
+            const stackContainer = document.getElementById('stack');
+            stackContainer.innerHTML = '';
+            let result = 0;
+
+            // Determine the type of expression (infix, postfix, prefix)
+            if (isPostfix(expression)) {
+                result = evaluatePostfix(expression, stack, stackContainer);
+            } else if (isPrefix(expression)) {
+                result = evaluatePrefix(expression, stack, stackContainer);
+            } else {
+                result = evaluateInfix(expression, stack, stackContainer);
+            }
+
+            document.getElementById('result').innerText = result;
+        }
+
+        function isPostfix(expression) {
+            // Simple check for postfix (all operands followed by operators)
+            return /^[\d\s]+[\+\-\*\/\^]+$/.test(expression);
+        }
+
+        function isPrefix(expression) {
+            // Simple check for prefix (all operators followed by operands)
+            return /^[\+\-\*\/\^]+[\d\s]+$/.test(expression);
+        }
+
+        function evaluatePostfix(expression, stack, stackContainer) {
+            const tokens = expression.split(' ');
+            tokens.forEach(token => {
+                if (!isNaN(token)) {
+                    stack.push(parseInt(token));
+                } else {
+                    const b = stack.pop();
+                    const a = stack.pop();
+                    stack.push(evaluateOperation(a, b, token));
+                }
+                updateStackVisualization(stack, stackContainer);
+            });
+            return stack.pop();
+        }
+
+        function evaluatePrefix(expression, stack, stackContainer) {
+            const tokens = expression.split(' ').reverse();
+            tokens.forEach(token => {
+                if (!isNaN(token)) {
+                    stack.push(parseInt(token));
+                } else {
+                    const a = stack.pop();
+                    const b = stack.pop();
+                    stack.push(evaluateOperation(a, b, token));
+                }
+                updateStackVisualization(stack, stackContainer);
+            });
+            return stack.pop();
+        }
+
+        function evaluateInfix(expression, stack, stackContainer) {
+            // Convert infix to postfix and then evaluate
+            const postfix = infixToPostfix(expression);
+            return evaluatePostfix(postfix, stack, stackContainer);
+        }
+
+        function infixToPostfix(expression) {
+            // Convert infix expression to postfix expression
+            // This is a simplified version and may not handle all edge cases
+            const precedence = {'+': 1, '-': 1, '*': 2, '/': 2, '^': 3};
+            const stack = [];
+            let postfix = '';
+            const tokens = expression.split(' ');
+
+            tokens.forEach(token => {
+                if (!isNaN(token)) {
+                    postfix += token + ' ';
+                } else if (token === '(') {
+                    stack.push(token);
+                } else if (token === ')') {
+                    while (stack.length && stack[stack.length - 1] !== '(') {
+                        postfix += stack.pop() + ' ';
+                    }
+                    stack.pop();
+                } else {
+                    while (stack.length && precedence[token] <= precedence[stack[stack.length - 1]]) {
+                        postfix += stack.pop() + ' ';
+                    }
+                    stack.push(token);
+                }
+            });
+
+            while (stack.length) {
+                postfix += stack.pop() + ' ';
+            }
+
+            return postfix.trim();
+        }
+
+        function evaluateOperation(a, b, operator) {
+            switch (operator) {
+                case '+': return a + b;
+                case '-': return a - b;
+                case '*': return a * b;
+                case '/': return a / b;
+                case '^': return Math.pow(a, b);
+                default: return 0;
+            }
+        }
+
+        function updateStackVisualization(stack, stackContainer) {
+            stackContainer.innerHTML = '';
+            stack.forEach(item => {
+                const stackItem = document.createElement('div');
+                stackItem.className = 'stack-item';
+                stackItem.innerText = item;
+                stackContainer.appendChild(stackItem);
+            });
+        }
+    </script>
+</body>
+</html>
