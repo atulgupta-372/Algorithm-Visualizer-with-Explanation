@@ -1,0 +1,188 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Tower of Hanoi Visualization</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            text-align: center;
+            margin: 0;
+            padding: 0;
+            background-color: #f4f4f4;
+        }
+        canvas {
+            display: block;
+            margin: 20px auto;
+            background-color: white;
+            border: 2px solid #333;
+        }
+        button {
+            padding: 10px 20px;
+            margin: 10px;
+            font-size: 16px;
+            cursor: pointer;
+            background-color: #007bff;
+            color: white;
+            border: none;
+            border-radius: 5px;
+        }
+        button:disabled {
+            background-color: #ccc;
+            cursor: not-allowed;
+        }
+        #explanation {
+            font-size: 18px;
+            margin-top: 20px;
+            color: #333;
+        }
+        #inputContainer {
+            margin: 20px 0;
+        }
+        input[type="number"] {
+            padding: 10px;
+            font-size: 16px;
+            width: 80px;
+            margin-right: 10px;
+        }
+    </style>
+</head>
+<body>
+    <h1>Tower of Hanoi Visualization</h1>
+    <div id="inputContainer">
+        <label for="numDisks">Number of Disks: </label>
+        <input type="number" id="numDisks" min="1" max="10" value="4">
+        <button id="startButton">Start</button>
+    </div>
+    <canvas id="hanoiCanvas" width="800" height="400"></canvas>
+    <div>
+        <button id="prevButton" disabled>Previous</button>
+        <button id="nextButton" disabled>Next</button>
+    </div>
+    <div id="explanation">Enter the number of disks and click "Start" to begin.</div>
+
+    <script>
+        const canvas = document.getElementById('hanoiCanvas');
+        const ctx = canvas.getContext('2d');
+        const prevButton = document.getElementById('prevButton');
+        const nextButton = document.getElementById('nextButton');
+        const startButton = document.getElementById('startButton');
+        const numDisksInput = document.getElementById('numDisks');
+        const explanationDiv = document.getElementById('explanation');
+
+        let rods = [[], [], []];
+        let moves = [];
+        let currentStep = -1;
+        let numDisks = 4;
+        const rodPositions = [200, 400, 600];
+
+        function towerOfHanoi(n, source, target, auxiliary) {
+            if (n === 1) {
+                moves.push([source, target]);
+                return;
+            }
+            towerOfHanoi(n - 1, source, auxiliary, target);
+            moves.push([source, target]);
+            towerOfHanoi(n - 1, auxiliary, target, source);
+        }
+
+        function drawRodsAndDisks() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+            // Draw rods
+            ctx.fillStyle = 'black';
+            rodPositions.forEach(pos => {
+                ctx.fillRect(pos - 5, 100, 10, 300);
+            });
+
+            // Draw disks
+            rods.forEach((rod, index) => {
+                rod.forEach((disk, position) => {
+                    const diskWidth = disk * 20;
+                    const diskHeight = 20;
+                    const x = rodPositions[index] - diskWidth / 2;
+                    const y = 380 - position * 25;
+                    ctx.fillStyle = `hsl(${disk * 60}, 70%, 50%)`;
+                    ctx.fillRect(x, y, diskWidth, diskHeight);
+                });
+            });
+        }
+
+        function updateExplanation(step) {
+            if (step < 0 || step >= moves.length) {
+                explanationDiv.innerText = "Enter the number of disks and click \"Start\" to begin.";
+                return;
+            }
+
+            const [source, target] = moves[step];
+            explanationDiv.innerText = `Step ${step + 1}: Move disk from Rod ${source + 1} to Rod ${target + 1}.`;
+        }
+
+        function applyMove(step) {
+            const [source, target] = moves[step];
+            const disk = rods[source].pop();
+            rods[target].push(disk);
+            drawRodsAndDisks();
+        }
+
+        function nextStep() {
+            if (currentStep < moves.length - 1) {
+                currentStep++;
+                applyMove(currentStep);
+                updateExplanation(currentStep);
+            }
+            updateButtons();
+        }
+
+        function prevStep() {
+            if (currentStep >= 0) {
+                const [source, target] = moves[currentStep];
+                const disk = rods[target].pop();
+                rods[source].push(disk);
+                currentStep--;
+                drawRodsAndDisks();
+                updateExplanation(currentStep);
+            }
+            updateButtons();
+        }
+
+        function updateButtons() {
+            prevButton.disabled = currentStep < 0;
+            nextButton.disabled = currentStep >= moves.length - 1;
+        }
+
+        function startVisualization() {
+            numDisks = parseInt(numDisksInput.value);
+            if (isNaN(numDisks) || numDisks < 1 || numDisks > 10) {
+                explanationDiv.innerText = "Please enter a valid number of disks between 1 and 10.";
+                return;
+            }
+
+            // Initialize rods and moves
+            rods = [[], [], []];
+            for (let i = numDisks; i > 0; i--) {
+                rods[0].push(i);
+            }
+            moves = [];
+            towerOfHanoi(numDisks, 0, 2, 1);
+            currentStep = -1;
+
+            drawRodsAndDisks();
+            updateExplanation(currentStep);
+            updateButtons();
+
+            prevButton.disabled = false;
+            nextButton.disabled = false;
+        }
+
+        // Event listeners for buttons
+        nextButton.addEventListener('click', nextStep);
+        prevButton.addEventListener('click', prevStep);
+        startButton.addEventListener('click', startVisualization);
+
+        // Initial setup
+        drawRodsAndDisks();
+    </script>
+</body>
+</html>
